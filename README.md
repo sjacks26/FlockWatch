@@ -1,3 +1,5 @@
+DOCUMENTATION NO GOOD. TO BE MADE SOON. I HOPE.
+
 This code suggests new collection/query terms.  
 At the moment, it takes in two corpora. After some minor cleaning, it calculates a rate of change in frequency for each token in the text. If the rate of change for a token is greater than some specified threshold, it returns the token and the rate of change.
 
