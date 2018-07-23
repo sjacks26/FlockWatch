@@ -54,12 +54,14 @@ Once you have set all of the parameters in the config file, you are ready to run
 It often takes FlockWatch half an hour to 4 hours to identify trending terms and co-occurrence pairs; depending on the number of messages in each time interval and the number of collection terms, it could take more time or less time. Because of how long it takes, it's a good idea to run FlockWatch in the background using a computer that will not be doing much else while FlockWatch runs.  
 When you run FlockWatch from the command line, it expects you to provide the name of the collection as a command-line argument.
 
-Given this, the recommended way to run FlockWatch is with `python FlockWatch.py -n CollectionName &`. You should replace "CollectionName" with the name of your data collection (if you're using STACK data, this is the name of the STACK project). Including "&" at the end of this command tells python to run this code in the background; if you're running this on a server, that will let you do other things from the command line or close the SSH tunnel without crashing FlockWatch.
+Given this, the recommended way to run FlockWatch is with `python FlockWatch.py -n CollectionName &`. You should replace "CollectionName" with the name of your data collection (if you're using STACK data, this is the name of the STACK project). Including "&" at the end of this command tells the computer to run this code in the background; if you're running this on a server, that will let you do other things from the command line or close the SSH tunnel without crashing FlockWatch.
 
 **Important!**  
 FlockWatch is a _very_ CPU-intensive process. You should try to avoid running it at the same time as other CPU-intensive processes.   
 
 ### time_analysis
+
+_Description and instructions to come_
 
 ## Future features
 
