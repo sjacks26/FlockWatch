@@ -12,8 +12,6 @@ data_source = {
         "AUTH": True,
         "username": "USERNAME",
         "password": "PASSWORD",
-        "collection_name": "tweets",
-        "field_name_for_date_restriction": "created_ts",
         "ignore_RTs": True
     },
     "csv_details": {
