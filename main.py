@@ -191,7 +191,7 @@ def build_cooccurrence_matrix(text):
             logging.info("Too few messages with {0} found. Not looking for co-occurrences with this term.".format(c))
     good_collects = list(cooccurrence_values.keys())
     good_collect_ngrams = [f for f in good_collects if ' ' in f]
-    co_matrix = sparse.lil_matrix((len(good_collects), len(clean_tokens)))
+    co_matrix = sparse.dok_matrix((len(good_collects), len(clean_tokens)))
     clean_messages = [[t for t in w if (not t in stops and t.isalnum() and len(t) >= cfg.minimum_token_length)] for w in tokens]
     message_time = []
     for i in range(0, len(clean_messages)):
@@ -201,10 +201,10 @@ def build_cooccurrence_matrix(text):
         present_collect_ngrams = [f for f in good_collect_ngrams if f in text[i]]
         present_collection_terms.extend(present_collect_ngrams)
         collection_term_indexes = {}
+        message = list(set(clean_message))
         for c in present_collection_terms:
             c_term_index = good_collects.index(c)
             collection_term_indexes[c] = c_term_index
-            message = list(set(clean_message))
             if c in present_collect_ngrams:
                 c_tokens = c.split(' ')
                 for t in c_tokens:
