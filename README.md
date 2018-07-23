@@ -59,6 +59,10 @@ Given this, the recommended way to run FlockWatch is with `python FlockWatch.py 
 **Important!**  
 FlockWatch is a _very_ CPU-intensive process. You should try to avoid running it at the same time as other CPU-intensive processes.   
 
+### Finding and acting on output
+
+_Section to be completed on July 24_
+
 ### time_analysis
 
 _Description and instructions to come_
