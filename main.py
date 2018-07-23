@@ -210,21 +210,11 @@ def build_cooccurrence_matrix(text):
                 for t in c_tokens:
                     if t in message:
                         message.remove(t)
-            '''
-            for token in message:
-                if token in clean_tokens:
-                    token_index = clean_tokens.index(token)
-                    co_matrix[c_term_index, token_index] += cooccurrence_values[c]
-            '''
-        token_indexes = []
         for token in message:
             if token in clean_tokens:
                 token_index = clean_tokens.index(token)
-                token_indexes.append(token_index)
-        for c in collection_term_indexes:
-            for token in token_indexes:
-                co_matrix[collection_term_indexes[c], token] += cooccurrence_values[c]
-
+                for c in collection_term_indexes:
+                    co_matrix[collection_term_indexes[c], token_index] += cooccurrence_values[c]
         stop_time = time.time()
         duration = stop_time - start_time
         message_time.append(duration)
