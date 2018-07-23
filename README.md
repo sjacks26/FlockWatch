@@ -6,6 +6,7 @@ FlockWatch is a tool meant to help researchers build better data collections fro
 
 ## Getting data to FlockWatch
 FlockWatch was designed to work with Twitter data collected by [STACK](https://github.com/bitslabsyr/stack). If you use STACK, FlockWatch knows how to find collection terms and data about tweets automatically based on the STACK project name.  
+
 If you don't use STACK, you can tell FlockWatch to look for text data in a CSV; you will need to manually provide the collection terms used to collect that data in [config.py](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L24). With a CSV, you can use data collected from anywhere -- Facebook, Reddit, forums, even offline or digitized sources. Note that if you use a CSV, FlockWatch should only be used as a one-off process.  
 
 
@@ -14,8 +15,15 @@ If you don't use STACK, you can tell FlockWatch to look for text data in a CSV; 
 2) Rename `config_template.py` to `config.py`.
 3) Change the parameters in [config.py](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py) to suit your needs. See below for an explanation of these parameters.
 
-
 DOCUMENTATION IN PROGRESS
+
+### Running FlockWatch
+
+### time_analysis
+
+## Requirements
+
+
 
 main.py is the primary code for FlockWatch.  
 time_analysis/trime_analysis.py is another supplemental file that looks out the output of co-occurrences over time.  
