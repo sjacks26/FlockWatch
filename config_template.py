@@ -12,7 +12,6 @@ data_source = {
         "AUTH": True,
         "username": "USERNAME",
         "password": "PASSWORD",
-        #"database_name": "ConspiracyTheories_5b434d8a7315ac7dce057f13",
         "collection_name": "tweets",
         "field_name_for_date_restriction": "created_ts",
         "ignore_RTs": True
