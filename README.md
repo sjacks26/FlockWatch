@@ -5,11 +5,16 @@
 FlockWatch is a tool meant to help researchers build better data collections from social media platforms and other websites. It looks at existing datasets built around a list of collection terms, then recommends terms that the researcher might want to add to their collection criteria. FlockWatch creates reports of the words it recommends, and it also sends you an email every time it finishes running to let you know how many words it recommended.  
  FlockWatch can be run on a Linux-based server or a Mac computer (desktop or laptop), but it has not been tested on a Windows machine. It can be set to run every so often indefinitely, or it can be run as a one-off process.
 
+## User skills required for FlockWatch
+
+In order to use FlockWatch, you should:
+* be at least minimally comfortable with python3
+* know how to edit files using vim, nano, or another command-line text editor (though you can avoid this if you are using FlockWatch on a personal computer rather than a server) 
+
 ## Getting data to FlockWatch
 FlockWatch was designed to work with Twitter data collected by [STACK](https://github.com/bitslabsyr/stack). If you use STACK, FlockWatch knows how to find collection terms and data about tweets automatically based on the STACK project name.  
 
 If you don't use STACK, you can tell FlockWatch to look for text data in a CSV. With a CSV, you can use data collected from anywhere -- Facebook, Reddit, forums, even offline or digitized sources. You will need to manually provide the collection terms used to collect that data in [config.py](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L21). Note that if you use a CSV, FlockWatch should only be used as a one-off process.  
-
 
 ### Installation and setup
 1) Clone the code to your server or computer using `git clone https://github.com/sjacks26/FlockWatch.git`. You should run this command from a directory that your user has write permissions in; otherwise, you can run ServerReport as sudo.  
@@ -41,13 +46,20 @@ Before you run FlockWatch, you need to set a number of parameters in the config 
 12) If you have a list of collection- or platform- specific [stopwords](http://www.nltk.org/book/ch02.html#stopwords_index_term) that you want it to use, tell it where to find the [file containing that list](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L38).   
 13) Tell FlockWatch which [email addresses should receive an email](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L41) summarizing the FlockWatch output whenever FlockWatch generates trending and co-occurrence reports.
     14) FlockWatch will try to send this email using a Gmail account. Give FlockWatch the [Gmail account name](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L42) (without "@gmail.com") and the [password](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L43) for that account.  
-   
-          
+15) The config parameters about context ([here](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L35) and [here](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py#L36)) currently don't affect output. In the future, FlockWatch will be able to provide examples of messages containing trending terms or co-occurrence pairs.   
 
 ### Running FlockWatch  
 
+Once you have 
+
 ### time_analysis
 
+## Future features
+
+In the future, FlockWatch will:
+1) give the user some in-context examples of the trending terms and co-occurrence pairs that it reports
+2) have more robust error handling and more informative error messages
+ 
 ## Requirements
 
 FlockWatch was developed and tested using:  
