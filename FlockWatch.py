@@ -112,8 +112,8 @@ def build_word_frequency(text1, text2):
     This function returns a dataframe with word counts for all words that appear in both sets of text
     """
     tknzr = nltk.tokenize.TweetTokenizer(preserve_case=False)
-    tokens1 = [tknzr.tokenize(text) for text in text1.iloc[:,0]]
-    tokens2 = [tknzr.tokenize(text) for text in text2.iloc[:,0]]
+    tokens1 = [tknzr.tokenize(text) for text in text1['text']]
+    tokens2 = [tknzr.tokenize(text) for text in text2['text']]
     tokens1 = [w.strip('#@') for t in tokens1 for w in t if not w.strip('#@') in stops_w_collection_terms]
     tokens2 = [w.strip('#@') for t in tokens2 for w in t if not w.strip('#@') in stops_w_collection_terms]
     tokens1 = [t for t in tokens1 if t.isalnum()]
@@ -194,49 +194,54 @@ def build_cooccurrence_matrix(text):
     co_matrix = sparse.dok_matrix((len(good_collects), len(clean_tokens)))
     clean_messages = [[t for t in w if (not t in stops and t.isalnum() and len(t) >= cfg.minimum_token_length)] for w in tokens]
     message_time = []
-    for i in range(0, len(clean_messages)):
-        start_time = time.time()
-        clean_message = clean_messages[i]
-        present_collection_terms = list(set(good_collects).intersection(clean_message))
-        present_collect_ngrams = [f for f in good_collect_ngrams if f in text[i]]
-        present_collection_terms.extend(present_collect_ngrams)
-        collection_term_indexes = {}
-        message = list(set(clean_message))
-        for c in present_collection_terms:
-            c_term_index = good_collects.index(c)
-            collection_term_indexes[c] = c_term_index
-            if c in present_collect_ngrams:
-                c_tokens = c.split(' ')
-                for t in c_tokens:
-                    if t in message:
-                        message.remove(t)
-        for token in message:
-            if token in clean_tokens:
-                token_index = clean_tokens.index(token)
-                for c in collection_term_indexes:
-                    co_matrix[collection_term_indexes[c], token_index] += cooccurrence_values[c]
-        stop_time = time.time()
-        duration = stop_time - start_time
-        message_time.append(duration)
-    co_matrix_df = pd.DataFrame(co_matrix.todense())
-    co_matrix_df.columns = clean_tokens
-    new_index = dict(enumerate(good_collects))
-    co_matrix_df = co_matrix_df.rename(index=new_index)
-    co_matrix_df = co_matrix_df.transpose()
+    if len(good_collects) > 0:
+        for i in range(0, len(clean_messages)):
+            start_time = time.time()
+            clean_message = clean_messages[i]
+            present_collection_terms = list(set(good_collects).intersection(clean_message))
+            present_collect_ngrams = [f for f in good_collect_ngrams if f in text[i]]
+            present_collection_terms.extend(present_collect_ngrams)
+            collection_term_indexes = {}
+            message = list(set(clean_message))
+            for c in present_collection_terms:
+                c_term_index = good_collects.index(c)
+                collection_term_indexes[c] = c_term_index
+                if c in present_collect_ngrams:
+                    c_tokens = c.split(' ')
+                    for t in c_tokens:
+                        if t in message:
+                            message.remove(t)
+            for token in message:
+                if token in clean_tokens:
+                    token_index = clean_tokens.index(token)
+                    for c in collection_term_indexes:
+                        co_matrix[collection_term_indexes[c], token_index] += cooccurrence_values[c]
+            stop_time = time.time()
+            duration = stop_time - start_time
+            message_time.append(duration)
+        co_matrix_df = pd.DataFrame(co_matrix.todense())
+        co_matrix_df.columns = clean_tokens
+        new_index = dict(enumerate(good_collects))
+        co_matrix_df = co_matrix_df.rename(index=new_index)
+        co_matrix_df = co_matrix_df.transpose()
 
-    describe_time = stats.describe(message_time)
-    logging.debug("Mean time to calculate co-occurrence rates per message: {}".format(describe_time.mean))
-    time_plot = plt.figure()
-    plt.hist(message_time, log=True)
-    fig_name = 'time_plot'
-    plt.savefig(fig_name)
-    plt.close('all')
-    message_time_without_outliers = [f for f in message_time if f < (10 * describe_time.mean)]
-    zoomed_time_plot = plt.figure()
-    plt.hist(message_time_without_outliers, log=True)
-    fig_name = 'zommed_time_plot'
-    plt.savefig(fig_name)
-    plt.close('all')
+        describe_time = stats.describe(message_time)
+        logging.debug("Mean time to calculate co-occurrence rates per message: {}".format(describe_time.mean))
+        time_plot = plt.figure()
+        plt.hist(message_time, log=True)
+        fig_name = 'time_plot'
+        plt.savefig(fig_name)
+        plt.close('all')
+        message_time_without_outliers = [f for f in message_time if f < (10 * describe_time.mean)]
+        zoomed_time_plot = plt.figure()
+        plt.hist(message_time_without_outliers, log=True)
+        fig_name = 'zommed_time_plot'
+        plt.savefig(fig_name)
+        plt.close('all')
+    elif len(good_collects) == 0:
+        co_matrix_df = pd.DataFrame(co_matrix.todense())
+        co_matrix_df.columns = clean_tokens
+        co_matrix_df = co_matrix_df.transpose()
     return co_matrix_df
 
 
@@ -326,7 +331,7 @@ def log_term_recommendations(text):
     if os.path.isfile(log_file):
         with open(log_file, 'r') as f:
             term_history = json.load(f)
-            os.remove(log_file)
+        os.remove(log_file)
     for term in terms:
         if term in term_history:
             term_history[term] += 1
