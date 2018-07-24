@@ -96,7 +96,7 @@ def find_text(interval):
         late_text = pd.DataFrame([t["stack_vars"]["full_tweet"]["full_text"] for t in late_text], columns=["text"])
     elif cfg.data_source['csv']:
         logging.info("Getting text from CSV.")
-        text = pd.read_csv(cfg.data_source['csv_details']['path'], keep_default_na=False, parse_dates=[cfg.data_source['csv_details']['comment_created_at']])
+        text = pd.read_csv(cfg.data_source['csv_details']['path'], keep_default_na=False, parse_dates=[cfg.data_source['csv_details']['date_column_name']])
         early_text = text[(pd.to_datetime(text['comment_created_at']) >= early_text_start) & (pd.to_datetime(text['comment_created_at']) < text_bridge_time)]
         late_text = text[(pd.to_datetime(text['comment_created_at']) >= text_bridge_time) & (pd.to_datetime(text['comment_created_at']) < start_time)]
     if len(early_text) == 0 or len(late_text) == 0:
