@@ -3,7 +3,8 @@
 # FlockWatch
 
 FlockWatch is a tool meant to help researchers build better data collections from social media platforms and other websites. It looks at existing datasets built around a list of collection terms, then recommends terms that the researcher might want to add to their collection criteria. FlockWatch creates reports of the words it recommends, and it also sends you an email every time it finishes running to let you know how many words it recommended.  
- FlockWatch can be run on a Linux-based server or a Mac computer (desktop or laptop), but it has not been tested on a Windows machine. It can be set to run every so often indefinitely, or it can be run as a one-off process.
+
+FlockWatch can be run on a Linux-based server or a Mac computer (desktop or laptop), but it has not been tested on a Windows machine. It can be set to run every so often indefinitely, or it can be run as a one-off process.
 
 ## User skills required for FlockWatch
 
@@ -80,9 +81,19 @@ FlockWatch is meant to help you build better data collections by recommending te
 
 After FlockWatch generates output, you should look at that output and decide for yourself which of the terms in those lists you want to use. Then, you should modify your collection tool to add the terms you want to add.   
 
-### time_analysis
+## time_analysis
 
-_Description and instructions to come_
+The main function of FlockWatch is to provide lists of trending terms and terms that regularly appear alongside collection terms used to build datasets. To do this, it analyzes snapshots of datasets. FlockWatch is designed to repeat this snapshot analysis many times for the same dataset.   
+
+This feature means that FlockWatch can also track which terms (if any) co-occur with a particular collection term for an extended period of time. [time_analysis.py](https://github.com/sjacks26/FlockWatch/blob/deploy/time_analysis/time_analysis.py) does this longitudinal analysis, producing line charts showing co-occurrences rates for 5 terms that co-occur with each collection term most frequently. To do this, it looks at the co-occurrence reports generated for that collection.  
+
+#### To run time_analysis
+1) First, in time_config.py, specify the [date and time](https://github.com/sjacks26/FlockWatch/blob/deploy/time_analysis/time_config.py#L3) you want FlockWatch to start looking at co-occurrence pairs for time_analysis.  
+2) Next, run time_analysis with `python time_analysis/time_analysis.py -n CollectionName &`. As with FlockWatch, replace "CollectionName" with the name of your collection.  
+
+#### time_analysis output
+
+time_analysis creates output using a similar folder structure as the main FlockWatch function. It will create a png file for each of the collection terms in the collection you tell it to analyze.
 
 ## Future features
 

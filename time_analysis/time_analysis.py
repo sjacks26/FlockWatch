@@ -24,7 +24,7 @@ logging.basicConfig(filename=cfg.time_analysis_log_file,filemode='a+',level=logg
 logging.info("Analyzing terms that have been reported as trending or co-occuring since".format(str(cfg.start_date)))
 log_dir = os.path.join(cfg.log_folder, collection_name)
 if not os.path.exists(log_dir):
-    logging.warning("No trending or co-occurrence reports exist for {}. Exiting.".format(collection_name))
+    logging.warning("No reports exist for {}. Exiting.".format(collection_name))
     sys.exit()
 
 log_dir_contents = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if os.path.isdir(os.path.join(log_dir,f))]
@@ -35,18 +35,14 @@ for f in log_dir_contents:
         reports_in_range.append(f)
 logging.info("Found {} sets of results.".format(len(reports_in_range)))
 
-trending_reports = []
 co_occurrence_reports = []
 for f in reports_in_range:
     for path, subdir, files in os.walk(f):
-        trending_files = [os.path.join(path, f) for f in files if "trending" in f]
-        trending_reports.extend(trending_files)
         co_occurrence_files = [os.path.join(path, f) for f in files if "co-occurring" in f]
         co_occurrence_reports.extend(co_occurrence_files)
-logging.info("Analyzing {0} trending reports and {1} co-occurrence reports.".format(len(trending_reports), len(co_occurrence_reports)))
+logging.info("Analyzing {0} co-occurrence reports.".format(len(co_occurrence_reports)))
 
 
-#def analyze_trending(trending_results=trending_reports):
 co_occurrence_over_time = pd.DataFrame()
 for result in co_occurrence_reports:
     date = result.split('/')[3:5]
@@ -76,29 +72,4 @@ for term in co_occurrence_terms:
     #plt.show()
     plt.close()
 
-'''
-co_occurrence_over_time = co_occurrence_over_time.transpose()
-#trending_over_time.fillna(0, inplace=True)
-#trending_over_time.index = pd.to_datetime(trending_over_time.index)
-co_occurrence_over_time.sort_index(inplace=True)
-'''
-
-'''
-co_occurrence_ranks = co_occurrence_over_time.rank(axis=1, ascending=False)
-co_occurrence_ranks.loc['count'] = co_occurrence_ranks.count()
-co_occurrence_ranks.loc['mean'] = co_occurrence_ranks.iloc[:-1,].mean()
-co_occurrence_ranks.sort_values(by=['count', 'mean'], axis=1, ascending=[False, True], inplace=True)
-co_occurrence_ranks = co_occurrence_ranks.iloc[:,:10]
-'''
-
-'''
-co_occurrence_plot = plt.figure(figsize=(10,4))
-co_occurrence_over_time.plot(ylim=(0,1))
-#co_occurrence_ranks.plot(ylim=(0,30))
-fig_name = 'temp_fig'
-plt.savefig(fig_name)
-#plt.show()
-'''
-'''
-I don't know how to show this info in a compelling way.
-'''
+logging.info("Plots of top co-occurring terms created at {}.\nProcess complete.".format(figure_folder))
