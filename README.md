@@ -52,8 +52,10 @@ Before you run FlockWatch, you need to set a number of parameters in the config 
 
 ### Running FlockWatch  
 
-Once you have set all of the parameters in the config file, you are ready to run FlockWatch!   
+Once you have set all of the parameters in the config file, you are ready to run FlockWatch!
+   
 It often takes FlockWatch half an hour to 4 hours to identify trending terms and co-occurrence pairs; depending on the number of messages in each time interval and the number of collection terms, it could take more time or less time. Because of how long it takes, it's a good idea to run FlockWatch in the background using a computer that will not be doing much else while FlockWatch runs.  
+
 When you run FlockWatch from the command line, it expects you to provide the name of the collection as a command-line argument.
 
 Given this, the recommended way to run FlockWatch is with `python FlockWatch.py -n CollectionName &`. You should replace "CollectionName" with the name of your data collection (if you're using STACK data, this is the name of the STACK project). Including "&" at the end of this command tells the computer to run this code in the background; if you're running this on a server, that will let you do other things from the command line or close the SSH tunnel without crashing FlockWatch.
@@ -63,17 +65,17 @@ FlockWatch is a _very_ CPU-intensive process. You should try to avoid running it
 
 ### Finding and acting on output
 
-##### Output structure
+#### Output structure
 When FlockWatch runs, it creates a folder structure for output that starts with `log/` in the top folder of FlockWatch. Inside `log/`, you'll find a folder for each collection name you've used with FlockWatch. Inside of each collection's folder, you'll find another set of folders whose names correspond to each day you've run FlockWatch on that collection. Inside each of these day folders, you'll find yet another set of folders with timestamps corresponding to each time you've run FlockWatch on that day on that collection. Each of these folders will contain the trending and/or co-occurrence reports that FlockWatch generated.  
 
 For example, if you ran FlockWatch on a collection called "test_collection" on January 1 1950 at 9:00am, you would find the reports in `FlockWatch/log/test_collection/1950-01-01/09:00:00/`.  
 
-##### Output files
+#### Output files
 FlockWatch creates two kinds of reports: trending term reports and co-occurrence reports.  
   * Trending term reports are CSV files with four columns: a term, the number of times it appears in the older set of text, the number of times it appears in the newer set of text, and a normalized rate of change (where 200 is the maximum value). This list is sorted by rate of change; for terms that have the same rate of change, terms that appear more are higher in the list.  
   * Co-occurrence reports are CSV files with three columns: a collection term, a term that co-occurs with that collection term, and their normalized rate of co-occurrence (a co-occurrence value of 1 means that every message that contains that collection term also contains that co-occurring term). This list of co-occurrence pairs is sorted by rate of co-occurrence.  
  
-##### What to do with output  
+#### What to do with output  
 FlockWatch is meant to help you build better data collections by recommending terms related to the terms you use as collection criteria, but FlockWatch does not make any decisions about which of these related terms to use. It provides you with the lists of trending terms and co-occurrence pairs to help you make that decision.  
 
 After FlockWatch generates output, you should look at that output and decide for yourself which of the terms in those lists you want to use. Then, you should modify your collection tool to add the terms you want to add.   
