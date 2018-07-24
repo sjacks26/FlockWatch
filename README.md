@@ -1,4 +1,4 @@
-# DOCUMENTATION IN PROGRESS
+###### FlockWatch was developed and tested using [Python 3.6](https://www.python.org/downloads/release/python-364/)
 
 # FlockWatch
 
@@ -18,8 +18,10 @@ If you don't use STACK, you can tell FlockWatch to look for text data in a CSV. 
 
 ### Installation and setup
 1) Clone the code to your server or computer using `git clone https://github.com/sjacks26/FlockWatch.git`. You should run this command from a directory that your user has write permissions in; otherwise, you can run ServerReport as sudo.  
-2) Rename `config_template.py` to `config.py`.
-3) Change the parameters in [config.py](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py) to suit your needs. See below for an explanation of these parameters.  
+2) Install requirements with `pip install -r requirements.txt`.
+    * Confirm that you have NLTK's stopwords installed. If you're not sure, you can try importing the stopwords in python, or you can run `python -m nltk.downloader stopwords` to download the stopwords (and it will let you know if they're already installed).
+3) Rename `config_template.py` to `config.py`.  
+4) Change the parameters in [config.py](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py) to suit your needs. See below for an explanation of these parameters.  
 
 ### Setting [config.py](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py) parameters
 
@@ -71,14 +73,12 @@ _Description and instructions to come_
 
 In the future, FlockWatch will:
 1) give the user some in-context examples of the trending terms and co-occurrence pairs that it reports
-2) have more robust error handling and more informative error messages
- 
-## Requirements
+2) have more robust error handling and more informative error messages    
 
-FlockWatch was developed and tested using:  
-* [Python 3.6](https://www.python.org/downloads/release/python-364/)  
-* [nltk 3.2.5](https://pypi.org/project/nltk/3.2.5/) (including the English stopwords list, which is [installed separately](https://stackoverflow.com/questions/41610543/corpora-stopwords-not-found-when-import-nltk-library))  
-* [pandas 0.22.0](https://pypi.org/project/pandas/0.22.0/)  
-* [scipy 1.0.0](https://pypi.org/project/scipy/1.0.0/)  
-* [pymongo 3.4.0](https://pypi.org/project/pymongo/3.4.0/)  
-* [matplotlib 2.1.2](https://pypi.org/project/matplotlib/2.1.2/)    
+## FAQs
+
+##### What languages does FlockWatch work with?  
+FlockWatch was developed based only on English-language text. A brief test with Cyrillic text indicates that FlockWatch doesn't crash with non-English text, but that doesn't necessarily mean that it generates meaningful output. If you use FlockWatch with non-English text and it provides helpful output, let me know!  
+
+##### FlockWatch is crashing and I don't know why. Help?
+If FlockWatch is crashing, the first thing to do is check the log file (based on your collection name) for an error message. I'll be adding more helpful error messaging soon, which hopefully will help you figure out solutions on your own. If you're stuck, create an issue and I'll try to help you out.

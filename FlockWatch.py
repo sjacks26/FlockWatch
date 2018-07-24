@@ -164,7 +164,6 @@ def find_trending_words(text1, text2):
 
 def build_cooccurrence_matrix(text):
     """
-    I'm not sure whether I want to use text separated by time. Might just use all text together or just the most recent text.
     Code based on a sample by Carl McCaffrey of UCD
     """
     text = text['text'].str.replace('@','').str.replace('#','').str.lower()
@@ -174,10 +173,8 @@ def build_cooccurrence_matrix(text):
     clean_texts = [w for t in tokens for w in t if (not w in stops_w_collection_terms and w.isalnum() and len(w) >= cfg.minimum_token_length)]
     clean_tokens = list(set(clean_texts))
     logging.info("Found {0} tokens that might occur with collection terms.".format(len(clean_tokens)))
-    # one_cooccurrence_value = 1/len(tokens)
     '''
-    one_cooccurrence_value assumes that the cooccurrence rate we care about is relative to the whole body of messages, not to the number of times a particular term appears. I don't think that's right.
-    The next block changes this. Instead, the value per cooccurrence between a token and a collection term is 1 divided by the number of documents that contain that collection term.
+    The value per co-occurrence between a token and a collection term is 1 divided by the number of documents that contain that collection term. In other words, a co-occurrence value of 1 for a word-collection term pair means that word appears in every message that contains that collection term
     '''
     cooccurrence_values = {}
     for c in collection_terms:
@@ -190,7 +187,7 @@ def build_cooccurrence_matrix(text):
         elif count > 0 and 1/count >= (cfg.co_occurrence_threshold/10):
             logging.info("Too few messages with {0} found. Not looking for co-occurrences with this term.".format(c))
     good_collects = list(cooccurrence_values.keys())
-    good_collect_ngrams = [f for f in good_collects if ' ' in f]
+    good_collect_ngrams = [f for f in good_collects if (' ' in f or '-' in f)]
     co_matrix = sparse.dok_matrix((len(good_collects), len(clean_tokens)))
     clean_messages = [[t for t in w if (not t in stops and t.isalnum() and len(t) >= cfg.minimum_token_length)] for w in tokens]
     message_time = []
@@ -207,7 +204,7 @@ def build_cooccurrence_matrix(text):
                 c_term_index = good_collects.index(c)
                 collection_term_indexes[c] = c_term_index
                 if c in present_collect_ngrams:
-                    c_tokens = c.split(' ')
+                    c_tokens = c.replace('-', ' ').split(' ')
                     for t in c_tokens:
                         if t in message:
                             message.remove(t)
@@ -235,7 +232,7 @@ def build_cooccurrence_matrix(text):
         message_time_without_outliers = [f for f in message_time if f < (10 * describe_time.mean)]
         zoomed_time_plot = plt.figure()
         plt.hist(message_time_without_outliers, log=True)
-        fig_name = 'zommed_time_plot'
+        fig_name = 'zoomed_time_plot'
         plt.savefig(fig_name)
         plt.close('all')
     elif len(good_collects) == 0:
