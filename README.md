@@ -63,7 +63,20 @@ FlockWatch is a _very_ CPU-intensive process. You should try to avoid running it
 
 ### Finding and acting on output
 
-_Section to be completed on July 24_
+##### Output structure
+When FlockWatch runs, it creates a folder structure for output that starts with `log/` in the top folder of FlockWatch. Inside `log/`, you'll find a folder for each collection name you've used with FlockWatch. Inside of each collection's folder, you'll find another set of folders whose names correspond to each day you've run FlockWatch on that collection. Inside each of these day folders, you'll find yet another set of folders with timestamps corresponding to each time you've run FlockWatch on that day on that collection. Each of these folders will contain the trending and/or co-occurrence reports that FlockWatch generated.  
+
+For example, if you ran FlockWatch on a collection called "test_collection" on January 1 1950 at 9:00am, you would find the reports in `FlockWatch/log/test_collection/1950-01-01/09:00:00/`.  
+
+##### Output files
+FlockWatch creates two kinds of reports: trending term reports and co-occurrence reports.  
+  * Trending term reports are CSV files with four columns: a term, the number of times it appears in the older set of text, the number of times it appears in the newer set of text, and a normalized rate of change (where 200 is the maximum value). This list is sorted by rate of change; for terms that have the same rate of change, terms that appear more are higher in the list.  
+  * Co-occurrence reports are CSV files with three columns: a collection term, a term that co-occurs with that collection term, and their normalized rate of co-occurrence (a co-occurrence value of 1 means that every message that contains that collection term also contains that co-occurring term). This list of co-occurrence pairs is sorted by rate of co-occurrence.  
+ 
+##### What to do with output  
+FlockWatch is meant to help you build better data collections by recommending terms related to the terms you use as collection criteria, but FlockWatch does not make any decisions about which of these related terms to use. It provides you with the lists of trending terms and co-occurrence pairs to help you make that decision.  
+
+After FlockWatch generates output, you should look at that output and decide for yourself which of the terms in those lists you want to use. Then, you should modify your collection tool to add the terms you want to add.   
 
 ### time_analysis
 
