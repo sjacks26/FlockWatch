@@ -1,4 +1,5 @@
 ###### FlockWatch was developed and tested using [Python 3.6](https://www.python.org/downloads/release/python-364/)
+###### Operating System Compatibility: Windows, MacOS, Ubuntu
 
 # FlockWatch
 
