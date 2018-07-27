@@ -9,6 +9,7 @@ from dateutil.parser import parse
 import argparse
 import matplotlib
 import datetime
+import pathlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time_config as cfg
@@ -35,7 +36,7 @@ for f in log_dir_contents:
         if log_date >= cfg.start_date:
             reports_in_range.append(f)
     elif type(cfg.start_date) is datetime.timedelta:
-        start_date = datetime.datetime.today().date() - cfg.start_date
+        start_date = datetime.datetime.today() - cfg.start_date
         if log_date >= start_date:
             reports_in_range.append(f)
 logging.info("Found {} sets of results.".format(len(reports_in_range)))
@@ -50,11 +51,10 @@ logging.info("Analyzing {0} co-occurrence reports.".format(len(co_occurrence_rep
 
 co_occurrence_over_time = pd.DataFrame()
 for result in co_occurrence_reports:
-    date = result.split('/')[3:5]
+    date = pathlib.PurePath(result).parts[3:5]
     date = ' '.join(date)
     result_file_info = pd.read_csv(result) #, index_col='collection_term')
     result_file_info.set_index(['collection_term', 'co-occurring_term'], inplace=True)
-    #result_file_info.index = list(zip(result_file_info['collection_term'], result_file_info['co-occurring_term']))
     result_file_info = result_file_info['rate']
     co_occurrence_over_time[date] = result_file_info
 
@@ -76,7 +76,6 @@ for term in co_occurrence_terms:
     plot1 = co_occurrence_plot.add_subplot(111)
     for cos in plot_df.columns.values:
         plot1.plot_date(plot_df.index, plot_df[cos], fmt='-')
-    #plot1 = plot_df.plot(ylim=(0, 1))
     plot1.set_ylim(0,1)
     co_occurrence_plot.autofmt_xdate()
     co_occurrence_plot.legend()

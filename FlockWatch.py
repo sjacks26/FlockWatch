@@ -8,6 +8,7 @@ import sys
 import os
 import json
 import pymongo
+import pathlib
 from email.message import EmailMessage
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -25,7 +26,7 @@ ap.add_argument("-n", "--name", type=str, required=True, help="The name of the d
 args = vars(ap.parse_args())
 
 collection_name = args['name']
-log_file_name = './' + collection_name + '.log'
+log_file_name = pathlib.PurePath('.', collection_name + '.log')
 
 logging.basicConfig(filename=log_file_name,filemode='a+',level=logging.DEBUG, format="[%(asctime)s] %(levelname)s:%(name)s:%(message)s")
 
