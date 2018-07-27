@@ -363,7 +363,8 @@ def email_notifications(cooccurrence_log, trending_log, trending_df, cooccurrenc
 def main():
     duration = 0
     logging.info("Searching for new terms to be used alongside the existing collection criteria ({0}).".format(collection_terms))
-    log_folder = os.path.join(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().time().replace(microsecond=0)))
+    log_folder = pathlib.PurePath(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().time().replace(microsecond=0)))
+    #log_folder = os.path.join(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().time().replace(microsecond=0)))
     os.makedirs(log_folder, exist_ok=True)
     for interval in cfg.time_interval:
         logging.info("Running based on time interval of {0}.".format(str(interval)))

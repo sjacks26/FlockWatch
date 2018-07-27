@@ -19,7 +19,9 @@ If you don't use STACK, you can tell FlockWatch to look for text data in a CSV. 
 
 ### Installation and setup
 1) Clone the code to your server or computer using `git clone https://github.com/sjacks26/FlockWatch.git`. You should run this command from a directory that your user has write permissions in; otherwise, you can run ServerReport as sudo.  
-2) Install requirements with `pip install -r requirements.txt`.
+2) Install requirements   
+    * If you use anaconda or miniconda, use `conda install --yes --file requirements.txt`
+    * If you don't use anaconda or miniconda, use `pip install -r requirements.txt`
     * Confirm that you have NLTK's stopwords installed. If you're not sure, you can try importing the stopwords in python, or you can run `python -m nltk.downloader stopwords` to download the stopwords (and it will let you know if they're already installed).
 3) Rename `config_template.py` to `config.py`.  
 4) Change the parameters in [config.py](https://github.com/sjacks26/FlockWatch/blob/deploy/config_template.py) to suit your needs. See below for an explanation of these parameters.  
