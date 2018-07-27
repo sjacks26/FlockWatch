@@ -31,8 +31,13 @@ log_dir_contents = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if os.
 reports_in_range = []
 for f in log_dir_contents:
     log_date = parse(os.path.basename(f))
-    if log_date >= cfg.start_date:
-        reports_in_range.append(f)
+    if type(cfg.start_date) is datetime.datetime:
+        if log_date >= cfg.start_date:
+            reports_in_range.append(f)
+    elif type(cfg.start_date) is datetime.timedelta:
+        start_date = datetime.datetime.today().date() - cfg.start_date
+        if log_date >= start_date:
+            reports_in_range.append(f)
 logging.info("Found {} sets of results.".format(len(reports_in_range)))
 
 co_occurrence_reports = []
@@ -63,13 +68,22 @@ for term in co_occurrence_terms:
     plot_df = co_occurrence_over_time.loc[term]
     plot_df = plot_df.transpose().sort_index()
     plot_df.sort_values(by=list(plot_df.columns), ascending=False, inplace=True)
+    plot_dates = []
+    plot_dates = set(plot_dates)
     plot_df = plot_df.iloc[:,:5]
+    plot_df.sort_index(inplace=True)
     co_occurrence_plot = plt.figure(figsize=(10, 4))
-    plot_df.plot(ylim=(0, 1))
+    plot1 = co_occurrence_plot.add_subplot(111)
+    for cos in plot_df.columns.values:
+        plot1.plot_date(plot_df.index, plot_df[cos], fmt='-')
+    #plot1 = plot_df.plot(ylim=(0, 1))
+    plot1.set_ylim(0,1)
+    co_occurrence_plot.autofmt_xdate()
+    co_occurrence_plot.legend()
     fig_name = term+'-co-occurrence-plot'
     fig_name = os.path.join(figure_folder, fig_name)
     plt.savefig(fig_name)
     #plt.show()
-    plt.close()
+    plt.close('all')
 
 logging.info("Plots of top co-occurring terms created at {}.\nProcess complete.".format(figure_folder))

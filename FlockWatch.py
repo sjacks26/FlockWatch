@@ -416,10 +416,11 @@ while running:
         running = False
     elif cfg.FlockWatch_scheduling['repeat']:
         sleep_time = (cfg.FlockWatch_scheduling['repeat_interval'].hour * 60 * 60) + (cfg.FlockWatch_scheduling['repeat_interval'].minute * 60) - duration
+        resume_time = str((datetime.datetime.now() + datetime.timedelta(seconds=sleep_time)).time().replace(microsecond=0))
         if sleep_time < 0:
             logging.warning("FlockWatch takes too long to complete with your parameters for it to run as frequently as you want. FlockWatch will run again as soon as it can.\n")
         elif sleep_time > 0:
-            logging.info("FlockWatch is complete. Sleeping for {} seconds, then running again.\n".format(sleep_time))
+            logging.info("FlockWatch is complete. Sleeping for {0} seconds, resuming at {1}.\n".format(sleep_time, resume_time))
             time.sleep(sleep_time)
 
 """

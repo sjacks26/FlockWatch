@@ -149,3 +149,5 @@ config.py
 data/
 time_analysis/figures/
 *.png
+collection_stopwords/**
+!collection_stopwords/.keep
