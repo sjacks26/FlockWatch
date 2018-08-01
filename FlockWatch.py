@@ -35,11 +35,23 @@ def get_collection_terms():
     if cfg.data_source['csv']:
         collection_terms = cfg.data_source['collection_terms']
     elif cfg.data_source['mongo']:
-        mongoClient = pymongo.MongoClient()
+        try:
+            mongoClient = pymongo.MongoClient()
+        except:
+            logging.critical("Mongo isn't running! Start Mongo or use CSV to give FlockWatch data.")
+            sys.exit()
         if cfg.data_source["mongo_details"]["AUTH"]:
-            mongoClient.admin.authenticate(cfg.data_source["mongo_details"]["username"], cfg.data_source["mongo_details"]['password'])
-        mongo_dbs = mongoClient.database_names()
-        collection_term_db = [d for d in mongo_dbs if (collection_name in d and 'Config' in d)][0]
+            try:
+                mongoClient.admin.authenticate(cfg.data_source["mongo_details"]["username"], cfg.data_source["mongo_details"]['password'])
+            except:
+                logging.critical("Couldn't authenticate Mongo. Check the credentials and try again.")
+                sys.exit()
+        try:
+            mongo_dbs = mongoClient.database_names()
+            collection_term_db = [d for d in mongo_dbs if (collection_name in d and 'Config' in d)][0]
+        except:
+            logging.critical("Couldn't find a config db for the STACK project you provided.")
+            sys.exit()
         collection_term_db = mongoClient[collection_term_db]
         collection_term_col = collection_term_db[collection_term_db.collection_names()[0]]
         collectors = collection_term_col.find({"network": "twitter"})
@@ -49,17 +61,31 @@ def get_collection_terms():
             for term in terms_list:
                 collection_terms.append(term["term"])
     collection_terms = [c.lower() for c in collection_terms]
+    if len(collection_terms) == 0:
+        if cfg.data_source['mongo']:
+            logging.critical("No collection terms found from Mongo! Check STACK config db contents.")
+            sys.exit()
+        elif cfg.data_source['csv']:
+            logging.critical("No collection terms found! Did you remember to provide them in the config file?")
+            sys.exit()
     return collection_terms
 
 collection_terms = get_collection_terms()
 
 
 def build_stopwords():
-    stops = list(nltk.corpus.stopwords.words('english'))
+    try:
+        stops = list(nltk.corpus.stopwords.words('english'))
+    except:
+        logging.critical("NLTK stopwords aren't installed. Check README for instructions on how to install NLTK stopwords: https://github.com/sjacks26/FlockWatch#installation-and-setup")
+        sys.exit()
     if cfg.stopword_file:
-        with open(cfg.stopword_file, 'r') as f:
-            additional_stops = f.read().splitlines()
-        stops.extend(additional_stops)
+        try:
+            with open(cfg.stopword_file, 'r') as f:
+                additional_stops = f.read().splitlines()
+            stops.extend(additional_stops)
+        except:
+            logging.warning("Couldn't read additional stopwords from file. Continuing with default stopwords.")
     stops = [w.lower() for w in stops]
     return stops
 
@@ -83,7 +109,11 @@ def find_text(interval):
         if cfg.data_source['mongo_details']['AUTH']:
             mongoClient.admin.authenticate(cfg.data_source['mongo_details']["username"], cfg.data_source['mongo_details']['password'])
         mongo_dbs = mongoClient.database_names()
-        data_db = [d for d in mongo_dbs if (collection_name in d and '_' in d)][0]
+        try:
+            data_db = [d for d in mongo_dbs if (collection_name in d and '_' in d)][0]
+        except:
+            logging.critical("Couldn't find a data db for the STACK project you provided.")
+            sys.exit()
         data_db = mongoClient[data_db]
         data_col = data_db[cfg.data_source['mongo_details']["collection_name"]]
         if cfg.data_source['mongo_details']['ignore_RTs']:
@@ -144,6 +174,8 @@ def find_trending_context(text2, trending_term, number_examples=cfg.context_exam
         context = list(messages_with_trending_term.sample(number_examples))
     elif messages_with_trending_term.shape[0] <= number_examples:
         context = list(messages_with_trending_term)
+    if len(context) == 0:
+        context = None
     return context
 
 
@@ -174,9 +206,6 @@ def build_cooccurrence_matrix(text):
     clean_texts = [w for t in tokens for w in t if (not w in stops_w_collection_terms and w.isalnum() and len(w) >= cfg.minimum_token_length)]
     clean_tokens = list(set(clean_texts))
     logging.info("Found {0} tokens that might occur with collection terms.".format(len(clean_tokens)))
-    '''
-    The value per co-occurrence between a token and a collection term is 1 divided by the number of documents that contain that collection term. In other words, a co-occurrence value of 1 for a word-collection term pair means that word appears in every message that contains that collection term
-    '''
     cooccurrence_values = {}
     for c in collection_terms:
         count = text.str.contains(c).sum()
@@ -188,6 +217,7 @@ def build_cooccurrence_matrix(text):
         elif count > 0 and 1/count >= (cfg.co_occurrence_threshold/10):
             logging.info("Too few messages with {0} found. Not looking for co-occurrences with this term.".format(c))
     good_collects = list(cooccurrence_values.keys())
+    logging.info("Searching for tokens that co-occur with {0} collection terms.".format(len(good_collects)))
     good_collect_ngrams = [f for f in good_collects if (' ' in f or '-' in f)]
     co_matrix = sparse.dok_matrix((len(good_collects), len(clean_tokens)))
     clean_messages = [[t for t in w if (not t in stops and t.isalnum() and len(t) >= cfg.minimum_token_length)] for w in tokens]
@@ -260,7 +290,7 @@ def get_co_occurrence_pairs(text):
     """
     co_matrix_df = build_cooccurrence_matrix(text)
     pair_list = []
-    matrix = sparse.coo_matrix(co_matrix_df.values.T)
+    matrix = sparse.dok_matrix(co_matrix_df.values.T)
     for i,j,rate in zip(matrix.row, matrix.col, matrix.data):
         if rate > cfg.co_occurrence_threshold:
             pair_list.append([co_matrix_df.columns[i], co_matrix_df.index[j], rate])
@@ -288,7 +318,7 @@ def limit_repeat_reports(text):
     if cfg.repeat_reported_terms["repeat_limit"]:
         columns_to_check = ['word', 'co-occurring_term']
         terms_to_ignore = []
-        log_file = os.path.join(cfg.log_folder, collection_name, 'term_history.json')
+        log_file = pathlib.PurePath(cfg.log_folder, collection_name, 'term_history.json')
         if os.path.isfile(log_file):
             with open(log_file, 'r') as f:
                 term_history = json.load(f)
@@ -305,14 +335,14 @@ def limit_repeat_reports(text):
 
 
 def write_trending_report(trending_df, log_dir):
-    trending_log = os.path.join(log_dir, 'trending_terms.csv')
+    trending_log = pathlib.PurePath(log_dir, 'trending_terms.csv')
     trending_df.to_csv(trending_log, index=False)
     logging.info("Wrote trending terms report to {0}.".format(trending_log))
     return trending_log
 
 
 def write_cooccurrence_report(cooccurrence_df, log_dir):
-    cooccurrence_log = os.path.join(log_dir, 'co-occurring_terms.csv')
+    cooccurrence_log = pathlib.PurePath(log_dir, 'co-occurring_terms.csv')
     cooccurrence_df.to_csv(cooccurrence_log, index=False)
     logging.info("Wrote co-occurring terms report to {0}.".format(cooccurrence_log))
     return cooccurrence_log
@@ -325,7 +355,7 @@ def log_term_recommendations(text):
         terms = list(set(list(text['word'])))
     elif 'co-occurring_term' in columns:
         terms = list(set(list(text['co-occurring_term'])))
-    log_file = os.path.join(cfg.log_folder, collection_name, 'term_history.json')
+    log_file = pathlib.PurePath(cfg.log_folder, collection_name, 'term_history.json')
     if os.path.isfile(log_file):
         with open(log_file, 'r') as f:
             term_history = json.load(f)
@@ -364,10 +394,12 @@ def main():
     duration = 0
     logging.info("Searching for new terms to be used alongside the existing collection criteria ({0}).".format(collection_terms))
     log_folder = pathlib.PurePath(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().hour),str(datetime.datetime.now().minute), str(datetime.datetime.now().second))
-    #log_folder = os.path.join(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().time().replace(microsecond=0)))
-    os.makedirs(log_folder, exist_ok=True)
+    try:
+        os.makedirs(log_folder, exist_ok=True)
+    except:
+        logging.critical("Couldn't make a folder for output. Make sure you have write permissions for this directory.")
+        sys.exit()
     for interval in cfg.time_interval:
-        logging.info("Running based on time interval of {0}.".format(str(interval)))
         text1, text2 = find_text(interval)
         if cfg.trending:
             trending_start = time.process_time()

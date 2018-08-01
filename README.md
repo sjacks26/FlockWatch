@@ -72,7 +72,7 @@ FlockWatch is a _very_ CPU-intensive process. You should try to avoid running it
 #### Output structure
 When FlockWatch runs, it creates a folder structure for output that starts with `log/` in the top folder of FlockWatch. Inside `log/`, you'll find a folder for each collection name you've used with FlockWatch. Inside of each collection's folder, you'll find another set of folders whose names correspond to each day you've run FlockWatch on that collection. Inside each of these day folders, you'll find yet another set of folders with timestamps corresponding to each time you've run FlockWatch on that day on that collection. Each of these folders will contain the trending and/or co-occurrence reports that FlockWatch generated.  
 
-For example, if you ran FlockWatch on a collection called "test_collection" on January 1 1950 at 9:00am, you would find the reports in `FlockWatch/log/test_collection/1950-01-01/09:00:00/`.  
+For example, if you ran FlockWatch on a collection called "test_collection" on January 1 1950 at 9:00am, you would find the reports in `FlockWatch/log/test_collection/1950-01-01/09/0/0/`.  
 
 #### Output files
 FlockWatch creates two kinds of reports: trending term reports and co-occurrence reports.  
