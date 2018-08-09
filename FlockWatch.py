@@ -1,23 +1,27 @@
-import nltk
-import pandas as pd
-import time
-import datetime
-from scipy import sparse, stats
-import logging
-import sys
-import os
-import json
-import pymongo
-import pathlib
-from email.message import EmailMessage
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import smtplib
-import argparse
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+try:
+    import nltk
+    import pandas as pd
+    import time
+    import datetime
+    from scipy import sparse, stats
+    import logging
+    import sys
+    import os
+    import json
+    import pymongo
+    import pathlib
+    from email.message import EmailMessage
+    from email.mime.image import MIMEImage
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    import smtplib
+    import argparse
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+except ImportError:
+    logging.critical("Couldn't import a required module. Did you install using requirements.txt?")
+    sys.exit()
 
 import config as cfg                            # I might want to make the config file a CLI argument rather than hard coded in
 
@@ -127,9 +131,23 @@ def find_text(interval):
         late_text = pd.DataFrame([t["stack_vars"]["full_tweet"]["full_text"] for t in late_text], columns=["text"])
     elif cfg.data_source['csv']:
         logging.info("Getting text from CSV.")
-        text = pd.read_csv(cfg.data_source['csv_details']['path'], keep_default_na=False, parse_dates=[cfg.data_source['csv_details']['date_column_name']])
-        early_text = text[(pd.to_datetime(text['comment_created_at']) >= early_text_start) & (pd.to_datetime(text['comment_created_at']) < text_bridge_time)]
-        late_text = text[(pd.to_datetime(text['comment_created_at']) >= text_bridge_time) & (pd.to_datetime(text['comment_created_at']) < start_time)]
+        try:
+            text = pd.read_csv(cfg.data_source['csv_details']['path'], keep_default_na=False, parse_dates=[cfg.data_source['csv_details']['date_column_name']])
+        except:
+            logging.critical("Couldn't read the CSV file you specified. Did you provide the correct path?")
+            sys.exit()
+        try:
+            text = text[[cfg.data_source['csv_details']['text_column_name'], cfg.data_source['csv_details']['date_column_name']]]
+            text.columns = ['text', 'text_date']
+        except:
+            logging.critical("Couldn't find the columns named in the config file.")
+            sys.exit()
+        try:
+            early_text = text[(pd.to_datetime(text['text_date']) >= early_text_start) & (pd.to_datetime(text['text_date']) < text_bridge_time)]
+            late_text = text[(pd.to_datetime(text['text_date']) >= text_bridge_time) & (pd.to_datetime(text['text_date']) < start_time)]
+        except:
+            logging.warning("Couldn't parse the date column in the CSV file using pandas's built-in to_datetime function. Is it a valid timestamp? You might need to reformat that column to something that pandas can understand.")
+            sys.exit()
     if len(early_text) == 0 or len(late_text) == 0:
         logging.warning("Based on your desired interval, one of the sets of messages does not contain any messages. Try a different interval or wait for more data.")
         sys.exit()
@@ -160,7 +178,7 @@ def build_word_frequency(text1, text2):
         if c in counts1 and counts2[c] > (len(text2)/100):
             counts_list.append([c, counts1[c], counts2[c]])
         elif c not in counts1 and counts2[c] > (len(text2)/100):                    # The elif lets us get terms that didn't appear at all in the first set of text
-            counts_list.append([c, 0, counts2[c]])                          # We give the count of a term that doesn't appear in the early text a sub-one number so we can still get a rate of change. The value needs to be tuned to figure out how many times a term should appear in the second text if it never appeared in the first text in order to appear in the trending terms list
+            counts_list.append([c, 0, counts2[c]])
     counts_df = pd.DataFrame(counts_list, columns = counts_df_columns)
     counts_df.sort_values(by=['count2','count1'], ascending=False, inplace=True)
     logging.info("Got counts for {} unique tokens".format(counts_df.shape[0]))
@@ -290,7 +308,7 @@ def get_co_occurrence_pairs(text):
     """
     co_matrix_df = build_cooccurrence_matrix(text)
     pair_list = []
-    matrix = sparse.dok_matrix(co_matrix_df.values.T)
+    matrix = sparse.coo_matrix(co_matrix_df.values.T)
     for i,j,rate in zip(matrix.row, matrix.col, matrix.data):
         if rate > cfg.co_occurrence_threshold:
             pair_list.append([co_matrix_df.columns[i], co_matrix_df.index[j], rate])
@@ -317,6 +335,9 @@ def get_co_occurrence_pairs(text):
 def limit_repeat_reports(text):
     if cfg.repeat_reported_terms["repeat_limit"]:
         columns_to_check = ['word', 'co-occurring_term']
+        """
+        How do I add bigrams to this?
+        """
         terms_to_ignore = []
         log_file = pathlib.PurePath(cfg.log_folder, collection_name, 'term_history.json')
         if os.path.isfile(log_file):
@@ -327,17 +348,17 @@ def limit_repeat_reports(text):
                     terms_to_ignore.append(term)
             for c in columns_to_check:
                 if c in text.columns:
-                    text = text[~trending_df[c].isin(terms_to_ignore)]
-        logging.info("Removed recommended terms that have been recommended more than {0} times in the past.".format(repeat_reported_terms['limit']))
+                    text = text[~text[c].isin(terms_to_ignore)]
+        logging.info("Removed recommended terms that have been recommended more than {0} times in the past.".format(cfg.repeat_reported_terms['limit']))
     else:
         pass
     return text
 
 
-def write_trending_report(trending_df, log_dir):
-    trending_log = pathlib.PurePath(log_dir, 'trending_terms.csv')
+def write_trending_unigram_report(trending_df, log_dir):
+    trending_log = pathlib.PurePath(log_dir, 'trending_unigrams.csv')
     trending_df.to_csv(trending_log, index=False)
-    logging.info("Wrote trending terms report to {0}.".format(trending_log))
+    logging.info("Wrote trending unigrams report to {0}.".format(trending_log))
     return trending_log
 
 
@@ -385,9 +406,12 @@ def email_notifications(cooccurrence_log, trending_log, trending_df, cooccurrenc
     email['To'] = ", ".join(cfg.notification_email_recipients)
     server = smtplib.SMTP(cfg.email_server[0], cfg.email_server[1])
     server.starttls()
-    server.login(cfg.account_to_send_emails, cfg.password_to_send_emails)
-    server.sendmail(email['From'], cfg.notification_email_recipients, email.as_string())
-    server.quit()
+    try:
+        server.login(cfg.account_to_send_emails, cfg.password_to_send_emails)
+        server.sendmail(email['From'], cfg.notification_email_recipients, email.as_string())
+        server.quit()
+    except:
+        logging.warning("Unable to authenticate the email address to send email notifications. Check the credentials in config.")
 
 
 def main():
@@ -401,7 +425,7 @@ def main():
         sys.exit()
     for interval in cfg.time_interval:
         text1, text2 = find_text(interval)
-        if cfg.trending:
+        if cfg.trending_unigrams:
             trending_start = time.process_time()
             trending_df, trending_context = find_trending_words(text1, text2)
             '''
@@ -409,16 +433,16 @@ def main():
             '''
             trending_stop = time.process_time()
             trending_time = trending_stop - trending_start
-            logging.debug("Took {} seconds to calculate trending terms".format(trending_time))
+            logging.debug("Took {} seconds to calculate trending unigrams".format(trending_time))
             trending_df = limit_repeat_reports(trending_df)
             log_term_recommendations(trending_df)
             if trending_df.shape[0] > 0:
-                trending_log = write_trending_report(trending_df, log_folder)
+                trending_log = write_trending_unigram_report(trending_df, log_folder)
             elif trending_df.shape[0] == 0:
                 trending_log = "No trending log"
-        elif not cfg.trending:
-            logging.info("Not searching for trending terms.")
-            trending_log = "Not searching for trending terms"
+        elif not cfg.trending_unigrams:
+            logging.info("Not searching for trending unigrams.")
+            trending_log = "Not searching for trending unigrams"
             trending_df = pd.DataFrame(columns=['word'])
             trending_time = 0
         duration += trending_time
@@ -440,7 +464,11 @@ def main():
             cooccurrence_df = pd.DataFrame(columns=['word'])
             report_pairs_time = 0
         duration += report_pairs_time
-        email_notifications(cooccurrence_log, trending_log, trending_df, cooccurrence_df)
+        if cfg.send_notification_email:
+            #try:
+            email_notifications(cooccurrence_log, trending_log, trending_df, cooccurrence_df)
+            #except:
+            #    logging.warning("Unable to send email. Are you connected to the internet?")
     return duration
 
 running = True
