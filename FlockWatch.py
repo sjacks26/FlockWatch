@@ -74,8 +74,6 @@ def get_collection_terms():
             sys.exit()
     return collection_terms
 
-collection_terms = get_collection_terms()
-
 
 def build_stopwords():
     try:
@@ -92,10 +90,6 @@ def build_stopwords():
             logging.warning("Couldn't read additional stopwords from file. Continuing with default stopwords.")
     stops = [w.lower() for w in stops]
     return stops
-
-stops = build_stopwords()
-stops_w_collection_terms = stops.copy()
-stops_w_collection_terms.extend(collection_terms)
 
 
 def find_text(interval):
@@ -155,7 +149,7 @@ def find_text(interval):
     return early_text, late_text
 
 
-def build_word_frequency(text1, text2):
+def build_word_frequency(text1, text2, stops_w_collection_terms):
     """
     Once we have two sets of text data, the first step is to get word frequencies for each set.
     This function returns a dataframe with word counts for all words that appear in both sets of text
@@ -197,8 +191,8 @@ def find_trending_context(text2, trending_term, number_examples=cfg.context_exam
     return context
 
 
-def find_trending_words(text1, text2):
-    trending_df = build_word_frequency(text1, text2)
+def find_trending_words(text1, text2, stops_w_collection_terms):
+    trending_df = build_word_frequency(text1, text2, stops_w_collection_terms)
     trending_df['rate_of_change'] = (trending_df['count2'] - trending_df['count1'])/((trending_df['count2'] + trending_df['count1']) / 2) * 100
     trending_df = trending_df[trending_df['rate_of_change'] > cfg.trending_threshold]
     trending_df.sort_values(by=['rate_of_change', 'count2'], ascending=False, inplace=True)
@@ -427,7 +421,7 @@ def main():
         text1, text2 = find_text(interval)
         if cfg.trending_unigrams:
             trending_start = time.process_time()
-            trending_df, trending_context = find_trending_words(text1, text2)
+            trending_df, trending_context = find_trending_words(text1, text2, stops_w_collection_terms)
             '''
             I haven't figured out what to do with trending_context yet. No idea how to report this.
             '''
@@ -473,6 +467,10 @@ def main():
 
 running = True
 while running:
+    collection_terms = get_collection_terms()
+    stops = build_stopwords()
+    stops_w_collection_terms = stops.copy()
+    stops_w_collection_terms.extend(collection_terms)
     duration = main()
     if not cfg.FlockWatch_scheduling['repeat']:
         running = False
