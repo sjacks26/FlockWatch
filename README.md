@@ -111,3 +111,8 @@ FlockWatch was developed based only on English-language text. A brief test with 
 
 ##### FlockWatch is crashing and I don't know why. Help?
 If FlockWatch is crashing, the first thing to do is check the log file (based on your collection name) for an error message. For most errors, it should contain enough information about the error causing the crash to help you solve the problem. If you're stuck, create an issue and I'll try to help you out.
+
+## Acknowledgements
+
+This research was supported by [VOX-Pol](https://www.voxpol.eu/). The VOX-Pol Network of Excellence is funded by the European Union under the 7th Framework Programme for research, technological development, and demonstration, Grant Agreement No. 312827. 
+
