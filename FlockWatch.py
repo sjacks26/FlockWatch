@@ -467,7 +467,7 @@ def email_notifications(cooccurrence_log, trending_log, trending_df, cooccurrenc
 def main():
     duration = 0
     logging.info("Searching for new terms to be used alongside the existing collection criteria ({0}).".format(collection_terms))
-    log_folder = pathlib.PurePath(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().hour),str(datetime.datetime.now().minute), str(datetime.datetime.now().second))
+    log_folder = pathlib.PurePath(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().hour))
     try:
         os.makedirs(log_folder, exist_ok=True)
     except:
