@@ -401,21 +401,21 @@ def limit_repeat_reports(text):
 def write_trending_unigram_report(trending_df, log_dir):
     trending_log = pathlib.PurePath(log_dir, 'trending_unigrams.csv')
     trending_df.to_csv(trending_log, index=False)
-    logging.info("Wrote trending unigrams report to {0}.".format(trending_log))
+    logging.info("Wrote trending unigrams report to {0}, containing {1} unigrams.".format(trending_log, len(trending_df)))
     return trending_log
 
 
 def write_trending_bigram_report(trending_df, log_dir):
     trending_log = pathlib.PurePath(log_dir, 'trending_bigrams.csv')
     trending_df.to_csv(trending_log, index=False)
-    logging.info("Wrote trending bigrams report to {0}.".format(trending_log))
+    logging.info("Wrote trending bigrams report to {0}, containing {1} bigrams.".format(trending_log, len(trending_df)))
     return trending_log
 
 
 def write_cooccurrence_report(cooccurrence_df, log_dir):
     cooccurrence_log = pathlib.PurePath(log_dir, 'co-occurring_terms.csv')
     cooccurrence_df.to_csv(cooccurrence_log, index=False)
-    logging.info("Wrote co-occurring terms report to {0}.".format(cooccurrence_log))
+    logging.info("Wrote co-occurring terms report to {0}, containing {1} terms.".format(cooccurrence_log, len(cooccurrence_df)))
     return cooccurrence_log
 
 
@@ -544,6 +544,7 @@ def main():
 
 running = True
 while running:
+    start_time = datetime.datetime.now()
     collection_terms = get_collection_terms()
     stops = build_stopwords()
     stops_w_collection_terms = stops.copy()
@@ -552,8 +553,12 @@ while running:
     if not cfg.FlockWatch_scheduling['repeat']:
         running = False
     elif cfg.FlockWatch_scheduling['repeat']:
-        sleep_time = (cfg.FlockWatch_scheduling['repeat_interval'].hour * 60 * 60) + (cfg.FlockWatch_scheduling['repeat_interval'].minute * 60) - duration
-        resume_time = str((datetime.datetime.now() + datetime.timedelta(seconds=sleep_time)).time().replace(microsecond=0))
+        now = datetime.datetime.now()
+        duration = now - start_time
+        resume_time = start_time + datetime.timedelta(hours=cfg.FlockWatch_scheduling['repeat_interval'].hour, minutes=cfg.FlockWatch_scheduling['repeat_interval'].minute)
+        sleep_time = (resume_time - now).seconds
+        #sleep_time = (cfg.FlockWatch_scheduling['repeat_interval'].hour * 60 * 60) + (cfg.FlockWatch_scheduling['repeat_interval'].minute * 60) - duration
+        #resume_time = str(now + datetime.timedelta(seconds=sleep_time).time().replace(microsecond=0))
         if sleep_time < 0:
             logging.warning("FlockWatch takes too long to complete with your parameters for it to run as frequently as you want. FlockWatch will run again as soon as it can.\n")
         elif sleep_time > 0:
