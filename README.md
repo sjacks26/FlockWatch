@@ -102,7 +102,7 @@ time_analysis creates output using a similar folder structure as the main FlockW
 
 In the future, FlockWatch will:
 1) give the user some in-context examples of the trending terms and co-occurrence pairs that it reports
-2) have more robust error handling and more informative error messages    
+2) look for trending bigrams 
 
 ## FAQs
 
@@ -110,4 +110,9 @@ In the future, FlockWatch will:
 FlockWatch was developed based only on English-language text. A brief test with Cyrillic text indicates that FlockWatch doesn't crash with non-English text, but that doesn't necessarily mean that it generates meaningful output. If you use FlockWatch with non-English text and it provides helpful output, let me know!  
 
 ##### FlockWatch is crashing and I don't know why. Help?
-If FlockWatch is crashing, the first thing to do is check the log file (based on your collection name) for an error message. I'll be adding more helpful error messaging soon, which hopefully will help you figure out solutions on your own. If you're stuck, create an issue and I'll try to help you out.
+If FlockWatch is crashing, the first thing to do is check the log file (based on your collection name) for an error message. For most errors, it should contain enough information about the error causing the crash to help you solve the problem. If you're stuck, create an issue and I'll try to help you out.
+
+## Acknowledgements
+
+This research was supported by [VOX-Pol](https://www.voxpol.eu/). The VOX-Pol Network of Excellence is funded by the European Union under the 7th Framework Programme for research, technological development, and demonstration, Grant Agreement No. 312827. 
+
