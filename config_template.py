@@ -12,11 +12,14 @@ data_source = {
         "AUTH": True,
         "username": "USERNAME",
         "password": "PASSWORD",
+        "collection_name": "tweets",
+        "field_name_for_date_restriction": "created_ts",
         "ignore_RTs": True
     },
     "csv_details": {
         "path": 'path/to/csv',
-        "date_column_name": 'comment_created_at'
+        "date_column_name": 'comment_created_at',
+        "text_column_named": 'text'
     },
     "collection_terms": None #['Trump', 'America', 'maga']              # If data come from mongo, FlockWatch uses "collection_name" to automatically find the collection terms
 }
@@ -38,6 +41,7 @@ context_examples = 5
 stopword_file = False # '../stops.txt'
 log_folder = './log/'
 
+send_notification_email = True
 notification_email_recipients = ["user@email.com"]
 account_to_send_emails = 'gmail.addy'                               # must be a gmail account. Don't include "@gmail.com"
 password_to_send_emails = 'gmail.addy.password'

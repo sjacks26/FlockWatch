@@ -207,6 +207,55 @@ def find_trending_words(text1, text2, stops_w_collection_terms):
     return trending_df, context
 
 
+def build_bigram_frequency(text1, text2):
+    tknzr = nltk.tokenize.TweetTokenizer(preserve_case=False)
+    tokens1 = [tknzr.tokenize(text) for text in text1['text']]
+    tokens2 = [tknzr.tokenize(text) for text in text2['text']]
+    tokens1 = [w.strip('#@') for t in tokens1 for w in t]
+    tokens2 = [w.strip('#@') for t in tokens2 for w in t]
+    bigrams1 = list(nltk.bigrams(tokens1))
+    bigrams2 = list(nltk.bigrams(tokens2))
+    bigrams1 = [t for t in bigrams1 if not (t[0] in stops_w_collection_terms or t[1] in stops_w_collection_terms) and (t[0].isalnum() and t[1].isalnum()) and ' '.join(t) not in stops_w_collection_terms]
+    bigrams2 = [t for t in bigrams2 if not (t[0] in stops_w_collection_terms or t[1] in stops_w_collection_terms) and (t[0].isalnum() and t[1].isalnum()) and ' '.join(t) not in stops_w_collection_terms]
+    logging.info("Found {0} bigrams after filtering in early text. Found {1} bigrams after filtering in late text.".format(len(bigrams1), len(bigrams2)))
+    counts1 = nltk.FreqDist(bigrams1)
+    counts2 = nltk.FreqDist(bigrams2)
+    counts_df_columns = ['bigram', 'count1', 'count2']
+    counts_list = []
+    for c in counts2:
+        if c in counts1 and counts2[c] > (len(text2) / 100):
+            counts_list.append([' '.join(c), counts1[c], counts2[c]])
+        elif c not in counts1 and counts2[c] > (len(text2) / 100):  # The elif lets us get terms that didn't appear at all in the first set of text
+            counts_list.append([' '.join(c), 0, counts2[c]])
+    counts_df = pd.DataFrame(counts_list, columns=counts_df_columns)
+    counts_df.sort_values(by=['count2', 'count1'], ascending=False, inplace=True)
+    logging.info("Got counts for {} unique bigrams".format(counts_df.shape[0]))
+    return counts_df
+
+
+def find_trending_bigrams(text1, text2):
+    trending_df = build_bigram_frequency(text1, text2)
+    trending_df['rate_of_change'] = (trending_df['count2'] - trending_df['count1'])/((trending_df['count2'] + trending_df['count1']) / 2) * 100
+    trending_df = trending_df[trending_df['rate_of_change'] > cfg.trending_threshold]
+    trending_df.sort_values(by=['rate_of_change', 'count2'], ascending=False, inplace=True)
+    trending_df.reset_index(drop=True, inplace=True)
+    logging.info("Found {0} trending bigrams.".format(trending_df.shape[0]))
+    context = {}
+    if cfg.report_context:
+        for bigram in trending_df['bigram']:
+            context[bigram] = find_trending_bigram_context(text2, bigram)
+    elif not cfg.report_context:
+        context = None
+    return trending_df, context
+
+
+def find_trending_bigram_context(text2, trending_bigram, number_examples=cfg.context_examples):
+    '''
+    Need to build this function
+    '''
+    return
+
+
 def build_cooccurrence_matrix(text):
     """
     Code based on a sample by Carl McCaffrey of UCD
@@ -356,6 +405,13 @@ def write_trending_unigram_report(trending_df, log_dir):
     return trending_log
 
 
+def write_trending_bigram_report(trending_df, log_dir):
+    trending_log = pathlib.PurePath(log_dir, 'trending_bigrams.csv')
+    trending_df.to_csv(trending_log, index=False)
+    logging.info("Wrote trending bigrams report to {0}.".format(trending_log))
+    return trending_log
+
+
 def write_cooccurrence_report(cooccurrence_df, log_dir):
     cooccurrence_log = pathlib.PurePath(log_dir, 'co-occurring_terms.csv')
     cooccurrence_df.to_csv(cooccurrence_log, index=False)
@@ -438,6 +494,27 @@ def main():
             logging.info("Not searching for trending unigrams.")
             trending_log = "Not searching for trending unigrams"
             trending_df = pd.DataFrame(columns=['word'])
+            trending_time = 0
+        duration += trending_time
+        if cfg.trending_bigrams:
+            trending_start = time.process_time()
+            trending_bigram_df, trending_bigram_context = find_trending_bigrams(text1, text2)
+            '''
+            I haven't figured out what to do with trending_context yet. No idea how to report this.
+            '''
+            trending_stop = time.process_time()
+            trending_time = trending_stop - trending_start
+            logging.debug("Took {} seconds to calculate trending bigrams".format(trending_time))
+            trending_bigram_df = limit_repeat_reports(trending_bigram_df)
+            #log_term_recommendations(trending_bigram_df)
+            if trending_bigram_df.shape[0] > 0:
+                trending_bigram_log = write_trending_bigram_report(trending_bigram_df, log_folder)
+            elif trending_bigram_df.shape[0] == 0:
+                trending_bigram_log = "No trending log"
+        elif not cfg.trending_bigrams:
+            logging.info("Not searching for trending bigrams.")
+            trending_bigram_log = "Not searching for trending bigrams"
+            trending_bigram_df = pd.DataFrame(columns=['bigram'])
             trending_time = 0
         duration += trending_time
         if cfg.co_occurrence:
