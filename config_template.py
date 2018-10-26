@@ -27,7 +27,8 @@ data_source = {
 time_interval = [datetime.timedelta(hours=24)]
 start_time = False # datetime.datetime(2017,11,19,23,59)
 minimum_token_length = 3
-trending = True
+trending_unigrams = True
+trending_bigrams = True
 trending_threshold = 20                                             # This isn't actually a percent. The trending metric is (t2-t1)/((t2+t1)/2)*100. 66.67 = twice as many occurrences in t2 as t1. The max value is 200, which is always the value if a term appeared zero times in t1 and 1 time or more in t2.
 co_occurrence = True
 co_occurrence_threshold = 1/20                                      # This is a ratio representing how frequently words need to co-occur to be reported
