@@ -1,6 +1,7 @@
 try:
     import nltk
     import pandas as pd
+    from pandas.io.json import json_normalize
     import time
     import datetime
     from scipy import sparse, stats
@@ -36,8 +37,11 @@ logging.basicConfig(filename=log_file_name,filemode='a+',level=logging.DEBUG, fo
 
 
 def get_collection_terms():
-    if cfg.data_source['csv']:
+    if cfg.data_source['csv'] or cfg.data_source['json']:
         collection_terms = cfg.data_source['collection_terms']
+        if not collection_terms:
+            logging.critical("No collection terms were provided in the config file.")
+            sys.exit()
     elif cfg.data_source['mongo']:
         try:
             mongoClient = pymongo.MongoClient()
@@ -70,6 +74,9 @@ def get_collection_terms():
             logging.critical("No collection terms found from Mongo! Check STACK config db contents.")
             sys.exit()
         elif cfg.data_source['csv']:
+            logging.critical("No collection terms found! Did you remember to provide them in the config file?")
+            sys.exit()
+        elif cfg.data_source['json']:
             logging.critical("No collection terms found! Did you remember to provide them in the config file?")
             sys.exit()
     return collection_terms
@@ -141,6 +148,31 @@ def find_text(interval):
             late_text = text[(pd.to_datetime(text['text_date']) >= text_bridge_time) & (pd.to_datetime(text['text_date']) < start_time)]
         except:
             logging.warning("Couldn't parse the date column in the CSV file using pandas's built-in to_datetime function. Is it a valid timestamp? You might need to reformat that column to something that pandas can understand.")
+            sys.exit()
+    elif cfg.data_source['json']:
+        logging.info("Getting text from JSON.")
+        text = pd.DataFrame()
+        try:
+            with open(cfg.data_source['json_details']['path'], 'r') as f:
+                text_data = f.readlines()
+        except:
+            logging.critical("Couldn't read the JSON file you specified. Did you provide the correct path?")
+            sys.exit()
+        try:
+            for t in text_data:
+                text_line = json.loads(t)
+                text_line = json_normalize(text_line)
+                text = text.append(text_line)
+            text = text[[cfg.data_source['json_details']['text_key_name'], cfg.data_source['json_details']['date_key_name']]]
+            text.columns = ['text', 'text_date']
+        except:
+            logging.critical("Couldn't find the keys named in the config file.")
+            sys.exit()
+        try:
+            early_text = text[(pd.to_datetime(text['text_date']) >= early_text_start) & (pd.to_datetime(text['text_date']) < text_bridge_time)]
+            late_text = text[(pd.to_datetime(text['text_date']) >= text_bridge_time) & (pd.to_datetime(text['text_date']) < start_time)]
+        except:
+            logging.warning("Couldn't parse the date value in the JSON file using panda's built-in to_datetime function. Is it a valid timestamp? You might need to reformat it to something that pandas can understand.")
             sys.exit()
     if len(early_text) == 0 or len(late_text) == 0:
         logging.warning("Based on your desired interval, one of the sets of messages does not contain any messages. Try a different interval or wait for more data.")
