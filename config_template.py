@@ -23,7 +23,7 @@ data_source = {
         "text_column_named": 'text'
     },
     "json_details": {
-        "path": "/home/sjackson/FlockWatch/sample_json_file.json",
+        "path": "sample_json_file.json",
         "date_key_name": "created_at",
         "text_key_name": "text"
     },
