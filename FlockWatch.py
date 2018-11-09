@@ -1,6 +1,7 @@
 try:
     import nltk
     import pandas as pd
+    from pandas.io.json import json_normalize
     import time
     import datetime
     from scipy import sparse, stats
@@ -36,8 +37,11 @@ logging.basicConfig(filename=log_file_name,filemode='a+',level=logging.DEBUG, fo
 
 
 def get_collection_terms():
-    if cfg.data_source['csv']:
+    if cfg.data_source['csv'] or cfg.data_source['json']:
         collection_terms = cfg.data_source['collection_terms']
+        if not collection_terms:
+            logging.critical("No collection terms were provided in the config file.")
+            sys.exit()
     elif cfg.data_source['mongo']:
         try:
             mongoClient = pymongo.MongoClient()
@@ -70,6 +74,9 @@ def get_collection_terms():
             logging.critical("No collection terms found from Mongo! Check STACK config db contents.")
             sys.exit()
         elif cfg.data_source['csv']:
+            logging.critical("No collection terms found! Did you remember to provide them in the config file?")
+            sys.exit()
+        elif cfg.data_source['json']:
             logging.critical("No collection terms found! Did you remember to provide them in the config file?")
             sys.exit()
     return collection_terms
@@ -141,6 +148,31 @@ def find_text(interval):
             late_text = text[(pd.to_datetime(text['text_date']) >= text_bridge_time) & (pd.to_datetime(text['text_date']) < start_time)]
         except:
             logging.warning("Couldn't parse the date column in the CSV file using pandas's built-in to_datetime function. Is it a valid timestamp? You might need to reformat that column to something that pandas can understand.")
+            sys.exit()
+    elif cfg.data_source['json']:
+        logging.info("Getting text from JSON.")
+        text = pd.DataFrame()
+        try:
+            with open(cfg.data_source['json_details']['path'], 'r') as f:
+                text_data = f.readlines()
+        except:
+            logging.critical("Couldn't read the JSON file you specified. Did you provide the correct path?")
+            sys.exit()
+        try:
+            for t in text_data:
+                text_line = json.loads(t)
+                text_line = json_normalize(text_line)
+                text = text.append(text_line)
+            text = text[[cfg.data_source['json_details']['text_key_name'], cfg.data_source['json_details']['date_key_name']]]
+            text.columns = ['text', 'text_date']
+        except:
+            logging.critical("Couldn't find the keys named in the config file.")
+            sys.exit()
+        try:
+            early_text = text[(pd.to_datetime(text['text_date']) >= early_text_start) & (pd.to_datetime(text['text_date']) < text_bridge_time)]
+            late_text = text[(pd.to_datetime(text['text_date']) >= text_bridge_time) & (pd.to_datetime(text['text_date']) < start_time)]
+        except:
+            logging.warning("Couldn't parse the date value in the JSON file using panda's built-in to_datetime function. Is it a valid timestamp? You might need to reformat it to something that pandas can understand.")
             sys.exit()
     if len(early_text) == 0 or len(late_text) == 0:
         logging.warning("Based on your desired interval, one of the sets of messages does not contain any messages. Try a different interval or wait for more data.")
@@ -401,21 +433,21 @@ def limit_repeat_reports(text):
 def write_trending_unigram_report(trending_df, log_dir):
     trending_log = pathlib.PurePath(log_dir, 'trending_unigrams.csv')
     trending_df.to_csv(trending_log, index=False)
-    logging.info("Wrote trending unigrams report to {0}.".format(trending_log))
+    logging.info("Wrote trending unigrams report to {0}, containing {1} unigrams.".format(trending_log, len(trending_df)))
     return trending_log
 
 
 def write_trending_bigram_report(trending_df, log_dir):
     trending_log = pathlib.PurePath(log_dir, 'trending_bigrams.csv')
     trending_df.to_csv(trending_log, index=False)
-    logging.info("Wrote trending bigrams report to {0}.".format(trending_log))
+    logging.info("Wrote trending bigrams report to {0}, containing {1} bigrams.".format(trending_log, len(trending_df)))
     return trending_log
 
 
 def write_cooccurrence_report(cooccurrence_df, log_dir):
     cooccurrence_log = pathlib.PurePath(log_dir, 'co-occurring_terms.csv')
     cooccurrence_df.to_csv(cooccurrence_log, index=False)
-    logging.info("Wrote co-occurring terms report to {0}.".format(cooccurrence_log))
+    logging.info("Wrote co-occurring terms report to {0}, containing {1} terms.".format(cooccurrence_log, len(cooccurrence_df)))
     return cooccurrence_log
 
 
@@ -467,7 +499,7 @@ def email_notifications(cooccurrence_log, trending_log, trending_df, cooccurrenc
 def main():
     duration = 0
     logging.info("Searching for new terms to be used alongside the existing collection criteria ({0}).".format(collection_terms))
-    log_folder = pathlib.PurePath(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().hour),str(datetime.datetime.now().minute), str(datetime.datetime.now().second))
+    log_folder = pathlib.PurePath(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().hour))
     try:
         os.makedirs(log_folder, exist_ok=True)
     except:
@@ -544,6 +576,7 @@ def main():
 
 running = True
 while running:
+    start_time = datetime.datetime.now()
     collection_terms = get_collection_terms()
     stops = build_stopwords()
     stops_w_collection_terms = stops.copy()
@@ -552,8 +585,10 @@ while running:
     if not cfg.FlockWatch_scheduling['repeat']:
         running = False
     elif cfg.FlockWatch_scheduling['repeat']:
-        sleep_time = (cfg.FlockWatch_scheduling['repeat_interval'].hour * 60 * 60) + (cfg.FlockWatch_scheduling['repeat_interval'].minute * 60) - duration
-        resume_time = str((datetime.datetime.now() + datetime.timedelta(seconds=sleep_time)).time().replace(microsecond=0))
+        now = datetime.datetime.now()
+        duration = now - start_time
+        resume_time = start_time + datetime.timedelta(hours=cfg.FlockWatch_scheduling['repeat_interval'].hour, minutes=cfg.FlockWatch_scheduling['repeat_interval'].minute)
+        sleep_time = (resume_time - now).seconds
         if sleep_time < 0:
             logging.warning("FlockWatch takes too long to complete with your parameters for it to run as frequently as you want. FlockWatch will run again as soon as it can.\n")
         elif sleep_time > 0:
@@ -562,7 +597,6 @@ while running:
 
 """
 Next steps:
-- Add functionality to run this on multiple independent collections on the same server and still be able to distinguish which FlockReport output belongs to which collection.
 - Add option to report context for trending words and co-occurrences
     - Context generated.
     - Need to figure out how to report context.

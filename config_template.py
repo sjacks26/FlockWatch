@@ -8,6 +8,7 @@ FlockWatch_scheduling = {
 data_source = {
     "mongo": True,
     "csv": False,
+    "json": False,
     "mongo_details": {
         "AUTH": True,
         "username": "USERNAME",
@@ -20,6 +21,11 @@ data_source = {
         "path": 'path/to/csv',
         "date_column_name": 'comment_created_at',
         "text_column_named": 'text'
+    },
+    "json_details": {
+        "path": "/home/sjackson/FlockWatch/sample_json_file.json",
+        "date_key_name": "created_at",
+        "text_key_name": "text"
     },
     "collection_terms": None #['Trump', 'America', 'maga']              # If data come from mongo, FlockWatch uses "collection_name" to automatically find the collection terms
 }
