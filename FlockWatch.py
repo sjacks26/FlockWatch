@@ -8,6 +8,7 @@ try:
     import logging
     import sys
     import os
+    import re
     import json
     import pymongo
     import pathlib
@@ -34,6 +35,15 @@ collection_name = args['name']
 log_file_name = str(pathlib.PurePath('.', collection_name + '.log'))
 
 logging.basicConfig(filename=log_file_name,filemode='a+',level=logging.DEBUG, format="[%(asctime)s] %(levelname)s:%(name)s:%(message)s")
+
+
+def custom_alpha_filter(word):
+    custom_filter = '[^A-Za-z0-9_\-]'
+    filter_match = re.findall(custom_filter, word)
+    if len(filter_match) == 0:
+        return True
+    else:
+        return False
 
 
 def get_collection_terms():
@@ -189,10 +199,14 @@ def build_word_frequency(text1, text2, stops_w_collection_terms):
     tknzr = nltk.tokenize.TweetTokenizer(preserve_case=False)
     tokens1 = [tknzr.tokenize(text) for text in text1['text']]
     tokens2 = [tknzr.tokenize(text) for text in text2['text']]
-    tokens1 = [w.strip('#@') for t in tokens1 for w in t if not w.strip('#@') in stops_w_collection_terms]
-    tokens2 = [w.strip('#@') for t in tokens2 for w in t if not w.strip('#@') in stops_w_collection_terms]
-    tokens1 = [t for t in tokens1 if t.isalnum()]
-    tokens2 = [t for t in tokens2 if t.isalnum()]
+    if cfg.ignore_handles:
+        tokens1 = [w.strip('#') for t in tokens1 for w in t if (not '@' in w and not w.strip('#') in stops_w_collection_terms)]
+        tokens2 = [w.strip('#') for t in tokens2 for w in t if (not '@' in w and not w.strip('#') in stops_w_collection_terms)]
+    elif not cfg.ignore_handles:
+        tokens1 = [w.strip('#@') for t in tokens1 for w in t if not w.strip('#@') in stops_w_collection_terms]
+        tokens2 = [w.strip('#@') for t in tokens2 for w in t if not w.strip('#@') in stops_w_collection_terms]
+    tokens1 = [t for t in tokens1 if custom_alpha_filter(t)()]
+    tokens2 = [t for t in tokens2 if custom_alpha_filter(t)()]
     tokens1 = [t for t in tokens1 if len(t) >= cfg.minimum_token_length]
     tokens2 = [t for t in tokens2 if len(t) >= cfg.minimum_token_length]
     logging.info("Found {0} tokens after filtering in early text. Found {1} tokens after filtering in late text.".format(len(tokens1), len(tokens2)))
@@ -243,12 +257,16 @@ def build_bigram_frequency(text1, text2):
     tknzr = nltk.tokenize.TweetTokenizer(preserve_case=False)
     tokens1 = [tknzr.tokenize(text) for text in text1['text']]
     tokens2 = [tknzr.tokenize(text) for text in text2['text']]
-    tokens1 = [w.strip('#@') for t in tokens1 for w in t]
-    tokens2 = [w.strip('#@') for t in tokens2 for w in t]
-    bigrams1 = list(nltk.bigrams(tokens1))
+    if cfg.ignore_handles:
+        tokens1 = [w.strip('#') for t in tokens1 for w in t]
+        tokens2 = [w.strip('#') for t in tokens2 for w in t]
+    elif not cfg.ignore_handles:
+        tokens1 = [w.strip('#@') for t in tokens1 for w in t]
+        tokens2 = [w.strip('#@') for t in tokens2 for w in t]
+    bigrams1  = list(nltk.bigrams(tokens1))
     bigrams2 = list(nltk.bigrams(tokens2))
-    bigrams1 = [t for t in bigrams1 if not (t[0] in stops_w_collection_terms or t[1] in stops_w_collection_terms) and (t[0].isalnum() and t[1].isalnum()) and ' '.join(t) not in stops_w_collection_terms]
-    bigrams2 = [t for t in bigrams2 if not (t[0] in stops_w_collection_terms or t[1] in stops_w_collection_terms) and (t[0].isalnum() and t[1].isalnum()) and ' '.join(t) not in stops_w_collection_terms]
+    bigrams1 = [t for t in bigrams1 if not (t[0] in stops_w_collection_terms or t[1] in stops_w_collection_terms) and (custom_alpha_filter(t[0]) and custom_alpha_filter(t[1])) and ' '.join(t) not in stops_w_collection_terms and '@' not in ' '.join(t)]
+    bigrams2 = [t for t in bigrams2 if not (t[0] in stops_w_collection_terms or t[1] in stops_w_collection_terms) and (custom_alpha_filter(t[0]) and custom_alpha_filter(t[1])) and ' '.join(t) not in stops_w_collection_terms and '@' not in ' '.join(t)]
     logging.info("Found {0} bigrams after filtering in early text. Found {1} bigrams after filtering in late text.".format(len(bigrams1), len(bigrams2)))
     counts1 = nltk.FreqDist(bigrams1)
     counts2 = nltk.FreqDist(bigrams2)
@@ -292,11 +310,14 @@ def build_cooccurrence_matrix(text):
     """
     Code based on a sample by Carl McCaffrey of UCD
     """
-    text = text['text'].str.replace('@','').str.replace('#','').str.lower()
+    if cfg.ignore_handles:
+        text = text['text'].str.replace('#', '').str.lower()
+    elif not cfg.ignore_handles:
+        text = text['text'].str.replace('@','').str.replace('#','').str.lower()
     text.reset_index(inplace=True, drop=True)
     tknzr = nltk.tokenize.TweetTokenizer(preserve_case=False)
     tokens = [tknzr.tokenize(t) for t in text]
-    clean_texts = [w for t in tokens for w in t if (not w in stops_w_collection_terms and w.isalnum() and len(w) >= cfg.minimum_token_length)]
+    clean_texts = [w for t in tokens for w in t if (not w in stops_w_collection_terms and custom_alpha_filter(w) and len(w) >= cfg.minimum_token_length)]
     clean_tokens = list(set(clean_texts))
     logging.info("Found {0} tokens that might occur with collection terms.".format(len(clean_tokens)))
     cooccurrence_values = {}
@@ -313,7 +334,7 @@ def build_cooccurrence_matrix(text):
     logging.info("Searching for tokens that co-occur with {0} collection terms.".format(len(good_collects)))
     good_collect_ngrams = [f for f in good_collects if (' ' in f or '-' in f)]
     co_matrix = sparse.dok_matrix((len(good_collects), len(clean_tokens)))
-    clean_messages = [[t for t in w if (not t in stops and t.isalnum() and len(t) >= cfg.minimum_token_length)] for w in tokens]
+    clean_messages = [[t for t in w if (not t in stops and custom_alpha_filter(t)() and len(t) >= cfg.minimum_token_length)] for w in tokens]
     message_time = []
     if len(good_collects) > 0:
         for i in range(0, len(clean_messages)):
