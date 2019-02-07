@@ -133,13 +133,13 @@ def find_text(interval):
         data_col = data_db[cfg.data_source['mongo_details']["collection_name"]]
         if cfg.data_source['mongo_details']['ignore_RTs']:
             logging.info("Ignoring retweets.")
-            early_text = list(data_col.find({"retweeted_status": {"$exists": False}, cfg.data_source['mongo_details']['field_name_for_date_restriction']: {"$gte": early_text_start, "$lt": text_bridge_time}}, projection={"_id": 0, "stack_vars.full_tweet.full_text": 1}))
-            late_text = list(data_col.find({"retweeted_status": {"$exists": False}, cfg.data_source['mongo_details']['field_name_for_date_restriction']: {"$gte": text_bridge_time, "$lt": start_time}}, projection={"_id": 0, "stack_vars.full_tweet.full_text": 1}))
+            early_text = list(data_col.find({"retweeted_status": {"$exists": False}, cfg.data_source['mongo_details']['field_name_for_date_restriction']: {"$gte": early_text_start, "$lt": text_bridge_time}}, projection={"_id": 0, "stack_vars.full_tweet_text": 1}))
+            late_text = list(data_col.find({"retweeted_status": {"$exists": False}, cfg.data_source['mongo_details']['field_name_for_date_restriction']: {"$gte": text_bridge_time, "$lt": start_time}}, projection={"_id": 0, "stack_vars.full_tweet_text": 1}))
         elif not cfg.data_source['mongo_details']['ignore_RTs']:
             early_text = list(data_col.find({cfg.data_source['mongo_details']['field_name_for_date_restriction']: {"$gte": early_text_start, "$lt": text_bridge_time}}, projection={"_id":0, "stack_vars.full_tweet.full_text":1}))
             late_text = list(data_col.find({cfg.data_source['mongo_details']['field_name_for_date_restriction']: {"$gte": text_bridge_time, "$lt": start_time}}, projection={"_id": 0, "stack_vars.full_tweet.full_text": 1}))
-        early_text = pd.DataFrame([t["stack_vars"]["full_tweet"]["full_text"] for t in early_text], columns=["text"])
-        late_text = pd.DataFrame([t["stack_vars"]["full_tweet"]["full_text"] for t in late_text], columns=["text"])
+        early_text = pd.DataFrame([t["stack_vars"]["full_tweet_text"] for t in early_text], columns=["text"])
+        late_text = pd.DataFrame([t["stack_vars"]["full_tweet_text"] for t in late_text], columns=["text"])
     elif cfg.data_source['csv']:
         logging.info("Getting text from CSV.")
         try:
@@ -205,8 +205,8 @@ def build_word_frequency(text1, text2, stops_w_collection_terms):
     elif not cfg.ignore_handles:
         tokens1 = [w.strip('#@') for t in tokens1 for w in t if not w.strip('#@') in stops_w_collection_terms]
         tokens2 = [w.strip('#@') for t in tokens2 for w in t if not w.strip('#@') in stops_w_collection_terms]
-    tokens1 = [t for t in tokens1 if custom_alpha_filter(t)()]
-    tokens2 = [t for t in tokens2 if custom_alpha_filter(t)()]
+    tokens1 = [t for t in tokens1 if custom_alpha_filter(t)]
+    tokens2 = [t for t in tokens2 if custom_alpha_filter(t)]
     tokens1 = [t for t in tokens1 if len(t) >= cfg.minimum_token_length]
     tokens2 = [t for t in tokens2 if len(t) >= cfg.minimum_token_length]
     logging.info("Found {0} tokens after filtering in early text. Found {1} tokens after filtering in late text.".format(len(tokens1), len(tokens2)))
@@ -334,7 +334,7 @@ def build_cooccurrence_matrix(text):
     logging.info("Searching for tokens that co-occur with {0} collection terms.".format(len(good_collects)))
     good_collect_ngrams = [f for f in good_collects if (' ' in f or '-' in f)]
     co_matrix = sparse.dok_matrix((len(good_collects), len(clean_tokens)))
-    clean_messages = [[t for t in w if (not t in stops and custom_alpha_filter(t)() and len(t) >= cfg.minimum_token_length)] for w in tokens]
+    clean_messages = [[t for t in w if (not t in stops and custom_alpha_filter(t) and len(t) >= cfg.minimum_token_length)] for w in tokens]
     message_time = []
     if len(good_collects) > 0:
         for i in range(0, len(clean_messages)):
@@ -520,6 +520,8 @@ def email_notifications(cooccurrence_log, trending_log, trending_df, cooccurrenc
 def main():
     duration = 0
     logging.info("Searching for new terms to be used alongside the existing collection criteria ({0}).".format(collection_terms))
+    if cfg.ignore_handles:
+        logging.info('Ignoring handles.')
     log_folder = pathlib.PurePath(cfg.log_folder, collection_name, str(datetime.date.today()), str(datetime.datetime.now().hour))
     try:
         os.makedirs(log_folder, exist_ok=True)
