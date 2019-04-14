@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/141726684.svg)](https://zenodo.org/badge/latestdoi/141726684)
+
 ###### FlockWatch was developed and tested using [Python 3.6](https://www.python.org/downloads/release/python-364/)
 ###### Operating System Compatibility: Windows, MacOS, Ubuntu
 
